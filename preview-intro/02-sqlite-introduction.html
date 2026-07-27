@@ -1,0 +1,506 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SQLite 入門｜JWT 範例中的輕量資料庫</title>
+  <style>
+    :root{
+      --bg:#f5f7fb;
+      --card:#ffffff;
+      --ink:#1f2937;
+      --muted:#667085;
+      --primary:#0f766e;
+      --primary-soft:#ecfdf5;
+      --secondary:#2563eb;
+      --success:#15803d;
+      --warning:#b45309;
+      --danger:#b42318;
+      --line:#e4e7ec;
+      --shadow:0 18px 45px rgba(16,24,40,.10);
+    }
+    *{box-sizing:border-box}
+    html{scroll-behavior:smooth}
+    body{
+      margin:0;
+      font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang TC",
+      "Noto Sans TC","Microsoft JhengHei",sans-serif;
+      background:var(--bg);
+      color:var(--ink);
+      line-height:1.75;
+    }
+    .progress{
+      position:fixed;left:0;top:0;height:5px;width:0;
+      background:linear-gradient(90deg,var(--primary),var(--secondary));
+      z-index:999;
+    }
+    nav{
+      position:sticky;top:0;z-index:100;
+      backdrop-filter:blur(16px);
+      background:rgba(255,255,255,.9);
+      border-bottom:1px solid rgba(228,231,236,.95);
+    }
+    nav .inner{
+      max-width:1180px;margin:auto;padding:12px 24px;
+      display:flex;align-items:center;gap:18px;overflow:auto;
+    }
+    nav strong{white-space:nowrap;color:var(--primary)}
+    nav a{color:#475467;text-decoration:none;white-space:nowrap;font-size:14px}
+    nav a:hover{color:var(--primary)}
+    header{
+      min-height:75vh;
+      display:grid;place-items:center;
+      padding:72px 24px;
+      background:
+        radial-gradient(circle at 8% 10%,rgba(15,118,110,.16),transparent 28%),
+        radial-gradient(circle at 92% 30%,rgba(37,99,235,.14),transparent 28%),
+        linear-gradient(180deg,#fff,#f7fffd);
+    }
+    .hero{max-width:1080px;text-align:center}
+    .eyebrow{
+      display:inline-block;padding:7px 14px;border-radius:999px;
+      color:var(--primary);background:var(--primary-soft);
+      font-weight:700;font-size:14px;letter-spacing:.04em;
+    }
+    h1{font-size:clamp(44px,7vw,86px);line-height:1.03;margin:22px 0 18px}
+    .hero p{font-size:clamp(18px,2vw,25px);color:var(--muted);max-width:850px;margin:auto}
+    .hero .quote{
+      margin:36px auto 0;padding:20px 26px;max-width:860px;
+      background:#fff;border-left:6px solid var(--primary);
+      border-radius:12px;box-shadow:var(--shadow);
+      font-size:clamp(18px,2vw,24px);font-weight:750;text-align:left;
+    }
+    main{max-width:1120px;margin:auto;padding:36px 24px 100px}
+    section{
+      margin:34px 0;padding:38px;
+      background:var(--card);border:1px solid var(--line);
+      border-radius:22px;box-shadow:0 7px 22px rgba(16,24,40,.05);
+    }
+    h2{font-size:clamp(28px,4vw,44px);line-height:1.2;margin:0 0 22px}
+    h3{font-size:23px;margin:26px 0 10px}
+    .lead{font-size:20px;color:#475467}
+    .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:18px}
+    .grid-2{display:grid;grid-template-columns:repeat(2,1fr);gap:20px}
+    .card{
+      border:1px solid var(--line);border-radius:18px;padding:22px;background:#fff;
+    }
+    .card .icon{font-size:34px}
+    .card h3{margin:10px 0 6px}
+    .flow{
+      display:flex;align-items:center;justify-content:center;gap:14px;
+      flex-wrap:wrap;margin:30px 0;
+    }
+    .node{
+      min-width:165px;padding:18px;border-radius:16px;text-align:center;
+      background:var(--primary-soft);border:1px solid #a7f3d0;font-weight:750;
+    }
+    .arrow{font-size:30px;color:var(--primary);font-weight:800}
+    table{width:100%;border-collapse:collapse;margin:18px 0}
+    th,td{padding:14px 16px;border:1px solid var(--line);text-align:left;vertical-align:top}
+    th{background:#f9fafb}
+    code{
+      font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+      background:#f2f4f7;color:#111827;padding:3px 8px;border-radius:7px;font-weight:700;
+    }
+    pre{
+      overflow:auto;padding:22px;border-radius:16px;
+      background:#101828;color:#f8fafc;font-size:15px;line-height:1.65;
+    }
+    .callout{
+      border-left:6px solid var(--primary);
+      background:var(--primary-soft);padding:18px 22px;border-radius:12px;
+      font-size:19px;font-weight:700;
+    }
+    .warning{
+      border-left-color:#f59e0b;background:#fffbeb;color:#78350f;
+    }
+    .success{color:var(--success);font-weight:700}
+    .danger{color:var(--danger);font-weight:700}
+    .dbfile{
+      max-width:680px;margin:30px auto;padding:28px;border-radius:20px;
+      background:#0f172a;color:#fff;text-align:center;box-shadow:var(--shadow);
+    }
+    .dbfile .icon{font-size:62px}
+    .dbfile .name{
+      display:inline-block;margin-top:12px;padding:10px 18px;border-radius:12px;
+      background:#1e293b;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+      color:#5eead4;font-weight:800;font-size:22px;
+    }
+    .demo{
+      display:grid;grid-template-columns:300px 1fr;gap:24px;align-items:start;
+    }
+    .demo button{
+      width:100%;padding:14px;margin-bottom:10px;border-radius:12px;
+      border:1px solid var(--line);background:#fff;text-align:left;
+      font-size:16px;cursor:pointer;
+    }
+    .demo button.active{background:var(--primary);color:#fff;border-color:var(--primary)}
+    .result{
+      border:1px solid var(--line);border-radius:16px;padding:22px;background:#fff;
+      min-height:240px;
+    }
+    .quiz button{
+      padding:12px 18px;border:0;border-radius:10px;background:var(--primary);
+      color:white;font-weight:700;cursor:pointer;margin:5px 8px 5px 0;
+    }
+    .answer{margin-top:15px;font-weight:700;min-height:30px}
+    footer{text-align:center;color:var(--muted);padding:50px 20px}
+    @media(max-width:850px){
+      .grid,.grid-2,.demo{grid-template-columns:1fr}
+      section{padding:25px}
+      h1{font-size:48px}
+    }
+    @media print{
+      nav,.progress,.quiz{display:none}
+      body{background:#fff}
+      section{box-shadow:none;break-inside:avoid}
+    }
+  </style>
+</head>
+<body>
+<div class="progress" id="progress"></div>
+
+<nav>
+  <div class="inner">
+    <strong>SQLite 入門</strong>
+    <a href="#what">SQLite 是什麼</a>
+    <a href="#why">為何使用</a>
+    <a href="#compare">與 SQL Server 比較</a>
+    <a href="#efcore">EF Core 設定</a>
+    <a href="#jwt">JWT 範例角色</a>
+    <a href="#limits">限制</a>
+    <a href="#demo">互動示範</a>
+    <a href="#summary">重點整理</a>
+  </div>
+</nav>
+
+<header>
+  <div class="hero">
+    <span class="eyebrow">JWT 課程中的資料儲存選擇</span>
+    <h1>SQLite</h1>
+    <p>理解這個輕量、免安裝、單一檔案的關聯式資料庫，為什麼很適合教學、Demo 與小型應用。</p>
+    <div class="quote">SQLite 不是「假的資料庫」，而是一套嵌入應用程式、直接讀寫檔案的關聯式資料庫。</div>
+  </div>
+</header>
+
+<main>
+  <section id="what">
+    <h2>01｜SQLite 是什麼？</h2>
+    <p class="lead">SQLite 是一套輕量級的關聯式資料庫引擎，不需要另外啟動資料庫伺服器。</p>
+
+    <div class="grid">
+      <div class="card">
+        <div class="icon">📄</div>
+        <h3>單一檔案</h3>
+        <p>資料表、索引與資料通常都保存在一個資料庫檔案中。</p>
+      </div>
+      <div class="card">
+        <div class="icon">⚙️</div>
+        <h3>嵌入式資料庫</h3>
+        <p>應用程式直接透過 SQLite 程式庫讀寫資料庫，不需要獨立的 Server Process。</p>
+      </div>
+      <div class="card">
+        <div class="icon">🗃️</div>
+        <h3>關聯式資料庫</h3>
+        <p>支援資料表、SQL、索引、交易與關聯式資料設計。</p>
+      </div>
+    </div>
+
+    <div class="dbfile">
+      <div class="icon">🗄️</div>
+      <div>整個資料庫可以放在單一檔案</div>
+      <div class="name">jwt-course.db</div>
+    </div>
+  </section>
+
+  <section id="why">
+    <h2>02｜為什麼 JWT 範例使用 SQLite？</h2>
+
+    <div class="grid">
+      <div class="card">
+        <h3>快速開始</h3>
+        <p>學員不需要先安裝 SQL Server、建立 Instance 或設定登入帳號。</p>
+      </div>
+      <div class="card">
+        <h3>容易攜帶</h3>
+        <p>專案與資料庫檔案可以一起複製，方便課堂 Demo 與練習。</p>
+      </div>
+      <div class="card">
+        <h3>降低干擾</h3>
+        <p>課程重點放在 JWT、Authentication、Authorization 與 Token 生命週期。</p>
+      </div>
+    </div>
+
+    <div class="callout">
+      課程選擇 SQLite，是為了降低環境準備成本，不代表正式系統一定應該使用 SQLite。
+    </div>
+  </section>
+
+  <section id="compare">
+    <h2>03｜SQLite 與 SQL Server 的差異</h2>
+
+    <table>
+      <thead>
+        <tr><th>比較項目</th><th>SQLite</th><th>SQL Server</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>架構</td><td>嵌入式、直接讀寫檔案</td><td>獨立資料庫伺服器</td></tr>
+        <tr><td>安裝</td><td>通常不需要額外安裝 Server</td><td>需要安裝或連線到 SQL Server</td></tr>
+        <tr><td>資料保存</td><td>常見為單一 <code>.db</code> 檔案</td><td>由資料庫服務管理資料檔與記錄檔</td></tr>
+        <tr><td>並行能力</td><td>適合較輕量的讀寫情境</td><td>適合大量使用者與高併發</td></tr>
+        <tr><td>管理功能</td><td>精簡</td><td>完整的帳號、備份、監控、HA 等能力</td></tr>
+        <tr><td>常見用途</td><td>Demo、測試、桌面 App、小型服務</td><td>企業系統、正式後端、大型應用</td></tr>
+      </tbody>
+    </table>
+
+    <div class="callout warning">
+      SQLite 與 SQL Server 都能執行 SQL，但兩者並不是完全相同的產品，資料型別、函式、並行與管理能力也不完全一致。
+    </div>
+  </section>
+
+  <section id="efcore">
+    <h2>04｜ASP.NET Core 如何使用 SQLite？</h2>
+    <p class="lead">在 .NET 專案中，常透過 Entity Framework Core 連接 SQLite。</p>
+
+    <h3>安裝 Provider</h3>
+    <pre>dotnet add package Microsoft.EntityFrameworkCore.Sqlite</pre>
+
+    <h3>連線字串</h3>
+    <pre>{
+  "ConnectionStrings": {
+    "DefaultConnection": "Data Source=jwt-course.db"
+  }
+}</pre>
+
+    <h3>Program.cs 設定</h3>
+    <pre>builder.Services.AddDbContext&lt;AppDbContext&gt;(options =>
+    options.UseSqlite(
+        builder.Configuration.GetConnectionString("DefaultConnection")));</pre>
+
+    <h3>建立 Migration 與資料庫</h3>
+    <pre>dotnet ef migrations add InitialCreate
+dotnet ef database update</pre>
+
+    <div class="flow">
+      <div class="node">Entity 類別</div>
+      <div class="arrow">→</div>
+      <div class="node">DbContext</div>
+      <div class="arrow">→</div>
+      <div class="node">Migration</div>
+      <div class="arrow">→</div>
+      <div class="node">SQLite 檔案</div>
+    </div>
+  </section>
+
+  <section id="jwt">
+    <h2>05｜SQLite 在 JWT 範例中的角色</h2>
+    <p class="lead">SQLite 不負責產生 JWT，它負責保存 JWT 流程需要的資料。</p>
+
+    <div class="grid">
+      <div class="card">
+        <h3>使用者資料</h3>
+        <p>帳號、密碼雜湊、名稱、角色與狀態。</p>
+      </div>
+      <div class="card">
+        <h3>Refresh Token</h3>
+        <p>保存 Token 雜湊、到期時間、撤銷時間與輪替關係。</p>
+      </div>
+      <div class="card">
+        <h3>稽核資訊</h3>
+        <p>記錄登入、登出、撤銷或安全事件。</p>
+      </div>
+    </div>
+
+    <div class="flow">
+      <div class="node">使用者登入</div>
+      <div class="arrow">→</div>
+      <div class="node">從 SQLite 查詢使用者</div>
+      <div class="arrow">→</div>
+      <div class="node">驗證帳號密碼</div>
+      <div class="arrow">→</div>
+      <div class="node">產生 JWT</div>
+    </div>
+
+    <div class="callout">
+      JWT 通常是由 Token Service 建立；SQLite 則提供使用者、角色與 Refresh Token 等持久化資料。
+    </div>
+  </section>
+
+  <section>
+    <h2>06｜資料表範例</h2>
+
+    <h3>Users</h3>
+    <pre>CREATE TABLE Users (
+    Id INTEGER PRIMARY KEY AUTOINCREMENT,
+    UserName TEXT NOT NULL UNIQUE,
+    PasswordHash TEXT NOT NULL,
+    Role TEXT NOT NULL,
+    IsActive INTEGER NOT NULL
+);</pre>
+
+    <h3>RefreshTokens</h3>
+    <pre>CREATE TABLE RefreshTokens (
+    Id INTEGER PRIMARY KEY AUTOINCREMENT,
+    UserId INTEGER NOT NULL,
+    TokenHash TEXT NOT NULL,
+    ExpiresAt TEXT NOT NULL,
+    RevokedAt TEXT NULL,
+    FOREIGN KEY (UserId) REFERENCES Users(Id)
+);</pre>
+
+    <div class="callout warning">
+      正式系統不應直接儲存明文密碼，也不建議直接儲存可使用的 Refresh Token；應保存安全雜湊並妥善管理敏感資料。
+    </div>
+  </section>
+
+  <section id="limits">
+    <h2>07｜SQLite 適合與不適合的情境</h2>
+
+    <div class="grid-2">
+      <div class="card">
+        <h3 class="success">適合</h3>
+        <p>課堂範例、Prototype、自動化測試、桌面應用、小型單機工具、低流量服務。</p>
+      </div>
+      <div class="card">
+        <h3 class="danger">不一定適合</h3>
+        <p>大量同時寫入、高可用需求、複雜權限管理、大型企業後端或需要完整 DBA 工具的系統。</p>
+      </div>
+    </div>
+
+    <table>
+      <thead><tr><th>問題</th><th>判斷方向</th></tr></thead>
+      <tbody>
+        <tr><td>是否有大量同時寫入？</td><td>若有，應評估 SQL Server、PostgreSQL 等伺服器型資料庫。</td></tr>
+        <tr><td>是否需要高可用與備援？</td><td>SQLite 本身不是為企業級叢集管理設計。</td></tr>
+        <tr><td>是否只是課堂 Demo？</td><td>SQLite 通常非常合適。</td></tr>
+        <tr><td>是否需要快速複製與重建？</td><td>單一檔案特性很方便。</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section id="demo">
+    <h2>08｜互動示範：該選 SQLite 嗎？</h2>
+    <p class="lead">點選不同情境，觀察建議。</p>
+
+    <div class="demo">
+      <div>
+        <button class="active" data-case="course">🎓 JWT 課堂練習</button>
+        <button data-case="desktop">🖥️ 單機桌面工具</button>
+        <button data-case="enterprise">🏢 大型企業系統</button>
+        <button data-case="highwrite">⚡ 高併發寫入服務</button>
+        <button data-case="prototype">🧪 快速 Prototype</button>
+      </div>
+      <div class="result" id="result"></div>
+    </div>
+  </section>
+
+  <section class="quiz">
+    <h2>09｜快速檢查</h2>
+    <p><strong>問題：</strong>SQLite 因為沒有獨立資料庫伺服器，所以它不算真正的關聯式資料庫嗎？</p>
+    <button onclick="answer(false)">是</button>
+    <button onclick="answer(true)">不是</button>
+    <div class="answer" id="answer"></div>
+  </section>
+
+  <section id="summary">
+    <h2>10｜重點整理</h2>
+    <div class="grid">
+      <div class="card">
+        <h3>輕量</h3>
+        <p>不需要獨立資料庫伺服器，環境準備簡單。</p>
+      </div>
+      <div class="card">
+        <h3>單一檔案</h3>
+        <p>方便教學、複製、備份與重建。</p>
+      </div>
+      <div class="card">
+        <h3>仍是關聯式資料庫</h3>
+        <p>支援 SQL、資料表、索引、交易與關聯。</p>
+      </div>
+    </div>
+
+    <div class="quote" style="margin-top:28px;font-size:24px;font-weight:800;text-align:center">
+      SQLite 適合讓課程聚焦在 JWT，而不是讓學員先花時間建置資料庫伺服器。
+    </div>
+  </section>
+</main>
+
+<footer>SQLite 入門｜ASP.NET Core JWT 課堂前導講義</footer>
+
+<script>
+  const cases = {
+    course: {
+      title: "非常適合",
+      cls: "success",
+      body: `
+        <h3>JWT 課堂練習</h3>
+        <p>安裝成本低、專案容易攜帶，也能完整示範 EF Core 與資料持久化。</p>
+        <p class="success">建議：使用 SQLite。</p>`
+    },
+    desktop: {
+      title: "通常適合",
+      cls: "success",
+      body: `
+        <h3>單機桌面工具</h3>
+        <p>若資料主要由單一應用程式在本機使用，SQLite 通常很方便。</p>
+        <p class="success">建議：可以優先評估 SQLite。</p>`
+    },
+    enterprise: {
+      title: "需要進一步評估",
+      cls: "danger",
+      body: `
+        <h3>大型企業系統</h3>
+        <p>通常需要高可用、權限、監控、備份、多人並行與完整管理工具。</p>
+        <p class="danger">建議：通常改用 SQL Server、PostgreSQL 等伺服器型資料庫。</p>`
+    },
+    highwrite: {
+      title: "通常不建議",
+      cls: "danger",
+      body: `
+        <h3>高併發寫入服務</h3>
+        <p>若大量使用者同時進行寫入，SQLite 的檔案型架構可能不適合。</p>
+        <p class="danger">建議：使用專門處理高併發的資料庫伺服器。</p>`
+    },
+    prototype: {
+      title: "非常適合",
+      cls: "success",
+      body: `
+        <h3>快速 Prototype</h3>
+        <p>可以快速建立資料表與驗證功能，不需要先準備額外環境。</p>
+        <p class="success">建議：使用 SQLite 快速開始。</p>`
+    }
+  };
+
+  function renderCase(name){
+    const data = cases[name];
+    document.getElementById("result").innerHTML =
+      `<div class="${data.cls}" style="font-size:30px">${data.title}</div>${data.body}`;
+  }
+
+  document.querySelectorAll(".demo button").forEach(btn => {
+    btn.addEventListener("click", () => {
+      document.querySelectorAll(".demo button").forEach(x => x.classList.remove("active"));
+      btn.classList.add("active");
+      renderCase(btn.dataset.case);
+    });
+  });
+
+  function answer(correct){
+    const el = document.getElementById("answer");
+    if(correct){
+      el.innerHTML = '<span class="success">答對了。</span>SQLite 是真正的關聯式資料庫，只是它採用嵌入式與檔案型架構。';
+    }else{
+      el.innerHTML = '<span class="danger">再想一下。</span>是否有獨立伺服器，並不是判斷關聯式資料庫的條件。';
+    }
+  }
+
+  window.addEventListener("scroll", () => {
+    const max = document.documentElement.scrollHeight - window.innerHeight;
+    const width = max > 0 ? (window.scrollY / max) * 100 : 0;
+    document.getElementById("progress").style.width = width + "%";
+  });
+
+  renderCase("course");
+</script>
+</body>
+</html>

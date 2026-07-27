@@ -10,19 +10,12 @@
 |---|---|---|---:|
 | 1 | [JWT 前導互動教材](preview-intro/00-jwt-introduction.html) | JWT 結構、Claims、簽章、Authentication 與 Authorization | 30–45 分鐘 |
 | 2 | [RBAC 前導互動教材](preview-intro/01-rbac-jwt-introduction.html) | 角色、權限、Role Claim 與角色式存取控制 | 30–45 分鐘 |
-| 3 | [基礎版 API](basic/README.md) | Login、JWT Bearer、Claims、Role、Policy、401／403 | 3–4 小時 |
-| 4 | [進階版 API](advanced/README.md) | EF Core SQLite、Refresh Token、Rotation、Replay、Logout、Cookie 與 CSRF | 2.5–3 小時 |
+| 3 | [SQLite 前導互動教材](preview-intro/02-sqlite-introduction.html) | SQLite、EF Core、Migration 與 JWT 範例中的資料持久化 | 30–45 分鐘 |
+| 4 | [Refresh Token 前導互動教材](preview-intro/03-jwt-refresh-token-introduction.html) | Access Token、Refresh Token、Rotation、Replay Detection 與撤銷 | 30–45 分鐘 |
+| 5 | [基礎版 API](basic/README.md) | Login、JWT Bearer、Claims、Role、Policy、401／403 | 3–4 小時 |
+| 6 | [進階版 API](advanced/README.md) | EF Core SQLite、Refresh Token、Rotation、Replay、Logout、Cookie 與 CSRF | 2.5–3 小時 |
 
-兩份 `preview-intro` 是可直接在瀏覽器開啟的單檔互動教材。GitHub 會以原始 HTML 顯示檔案內容；要查看互動效果，請先 clone 或下載專案後，在本機瀏覽器開啟檔案，或從 repository 根目錄啟動簡易靜態伺服器：
-
-```bash
-python3 -m http.server 8080 --directory preview-intro
-```
-
-接著開啟：
-
-- <http://localhost:8080/00-jwt-introduction.html>
-- <http://localhost:8080/01-rbac-jwt-introduction.html>
+四份 `preview-intro` 都是可直接在瀏覽器開啟的單檔互動教材。請先 clone 或下載專案，再用檔案總管／Finder 直接開啟對應的 HTML 檔案，或使用瀏覽器的「開啟檔案」功能即可查看互動效果。
 
 ## 環境準備
 
