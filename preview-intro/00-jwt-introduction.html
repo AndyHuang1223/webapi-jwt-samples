@@ -1,0 +1,550 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>JWT 入門｜Authentication、Claims 與 Authorization</title>
+  <style>
+    :root{
+      --bg:#f5f7fb;
+      --card:#ffffff;
+      --ink:#1f2937;
+      --muted:#667085;
+      --primary:#2563eb;
+      --primary-soft:#eff6ff;
+      --secondary:#7c3aed;
+      --success:#15803d;
+      --warning:#b45309;
+      --danger:#b42318;
+      --line:#e4e7ec;
+      --shadow:0 18px 45px rgba(16,24,40,.10);
+    }
+    *{box-sizing:border-box}
+    html{scroll-behavior:smooth}
+    body{
+      margin:0;
+      font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang TC",
+      "Noto Sans TC","Microsoft JhengHei",sans-serif;
+      background:var(--bg);
+      color:var(--ink);
+      line-height:1.75;
+    }
+    .progress{
+      position:fixed;left:0;top:0;height:5px;width:0;
+      background:linear-gradient(90deg,var(--primary),var(--secondary));
+      z-index:999;
+    }
+    nav{
+      position:sticky;top:0;z-index:100;
+      backdrop-filter:blur(16px);
+      background:rgba(255,255,255,.88);
+      border-bottom:1px solid rgba(228,231,236,.95);
+    }
+    nav .inner{
+      max-width:1180px;margin:auto;padding:12px 24px;
+      display:flex;align-items:center;gap:18px;overflow:auto;
+    }
+    nav strong{white-space:nowrap;color:var(--primary)}
+    nav a{color:#475467;text-decoration:none;white-space:nowrap;font-size:14px}
+    nav a:hover{color:var(--primary)}
+    header{
+      min-height:75vh;
+      display:grid;place-items:center;
+      padding:72px 24px;
+      background:
+        radial-gradient(circle at 8% 10%,rgba(37,99,235,.16),transparent 28%),
+        radial-gradient(circle at 92% 30%,rgba(124,58,237,.15),transparent 28%),
+        linear-gradient(180deg,#fff,#f8faff);
+    }
+    .hero{max-width:1080px;text-align:center}
+    .eyebrow{
+      display:inline-block;padding:7px 14px;border-radius:999px;
+      color:var(--primary);background:var(--primary-soft);
+      font-weight:700;font-size:14px;letter-spacing:.04em;
+    }
+    h1{font-size:clamp(44px,7vw,86px);line-height:1.03;margin:22px 0 18px}
+    .hero p{font-size:clamp(18px,2vw,25px);color:var(--muted);max-width:850px;margin:auto}
+    .hero .quote{
+      margin:36px auto 0;padding:20px 26px;max-width:860px;
+      background:#fff;border-left:6px solid var(--primary);
+      border-radius:12px;box-shadow:var(--shadow);
+      font-size:clamp(18px,2vw,24px);font-weight:750;text-align:left;
+    }
+    main{max-width:1120px;margin:auto;padding:36px 24px 100px}
+    section{
+      margin:34px 0;padding:38px;
+      background:var(--card);border:1px solid var(--line);
+      border-radius:22px;box-shadow:0 7px 22px rgba(16,24,40,.05);
+    }
+    h2{font-size:clamp(28px,4vw,44px);line-height:1.2;margin:0 0 22px}
+    h3{font-size:23px;margin:26px 0 10px}
+    .lead{font-size:20px;color:#475467}
+    .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:18px}
+    .grid-2{display:grid;grid-template-columns:repeat(2,1fr);gap:20px}
+    .card{
+      border:1px solid var(--line);border-radius:18px;padding:22px;background:#fff;
+    }
+    .card .icon{font-size:34px}
+    .card h3{margin:10px 0 6px}
+    .flow{
+      display:flex;align-items:center;justify-content:center;gap:14px;
+      flex-wrap:wrap;margin:30px 0;
+    }
+    .node{
+      min-width:165px;padding:18px;border-radius:16px;text-align:center;
+      background:var(--primary-soft);border:1px solid #bfdbfe;font-weight:750;
+    }
+    .arrow{font-size:30px;color:var(--primary);font-weight:800}
+    table{width:100%;border-collapse:collapse;margin:18px 0}
+    th,td{padding:14px 16px;border:1px solid var(--line);text-align:left}
+    th{background:#f9fafb}
+    code{
+      font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+      background:#f2f4f7;
+      color:#111827;
+      padding:3px 8px;
+      border-radius:7px;
+      font-weight:700;
+    }
+    pre{
+      overflow:auto;padding:22px;border-radius:16px;
+      background:#101828;color:#f8fafc;font-size:15px;line-height:1.65;
+    }
+    .callout{
+      border-left:6px solid var(--primary);
+      background:var(--primary-soft);padding:18px 22px;border-radius:12px;
+      font-size:19px;font-weight:700;
+    }
+    .warning{
+      border-left-color:#f59e0b;background:#fffbeb;color:#78350f;
+    }
+    .success{color:var(--success);font-weight:700}
+    .danger{color:var(--danger);font-weight:700}
+    .token{
+      display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-top:22px;
+    }
+    .token-part{
+      padding:20px;border-radius:16px;color:#fff;min-height:170px;
+    }
+    .token-part h3{margin:0 0 12px;color:#fff}
+    .token-part p{font-size:18px;line-height:1.65}
+    .token-part code{
+      display:block;
+      margin-top:14px;
+      padding:10px 12px;
+      background:rgba(17,24,39,.28);
+      color:#fff;
+      border:1px solid rgba(255,255,255,.28);
+      font-size:16px;
+      line-height:1.5;
+      white-space:normal;
+      overflow-wrap:anywhere;
+      text-shadow:0 1px 2px rgba(0,0,0,.25);
+    }
+    .header-part{background:#dc2626}
+    .payload-part{background:#7c3aed}
+    .signature-part{background:#1d4ed8}
+    .token-line{
+      font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+      word-break:break-all;padding:18px;border-radius:14px;background:#111827;color:#fff;
+    }
+    .token-line .h{color:#f87171}
+    .token-line .p{color:#c084fc}
+    .token-line .s{color:#60a5fa}
+    .demo{
+      display:grid;grid-template-columns:300px 1fr;gap:24px;align-items:start;
+    }
+    .demo button{
+      width:100%;padding:14px;margin-bottom:10px;border-radius:12px;
+      border:1px solid var(--line);background:#fff;text-align:left;
+      font-size:16px;cursor:pointer;
+    }
+    .demo button.active{background:var(--primary);color:#fff;border-color:var(--primary)}
+    .result{
+      border:1px solid var(--line);border-radius:16px;padding:22px;background:#fff;
+      min-height:240px;
+    }
+    .quiz button{
+      padding:12px 18px;border:0;border-radius:10px;background:var(--primary);
+      color:white;font-weight:700;cursor:pointer;margin:5px 8px 5px 0;
+    }
+    .answer{margin-top:15px;font-weight:700;min-height:30px}
+    footer{text-align:center;color:var(--muted);padding:50px 20px}
+    @media(max-width:850px){
+      .grid,.grid-2,.token,.demo{grid-template-columns:1fr}
+      section{padding:25px}
+      h1{font-size:48px}
+    }
+    @media print{
+      nav,.progress,.quiz{display:none}
+      body{background:#fff}
+      section{box-shadow:none;break-inside:avoid}
+    }
+  </style>
+</head>
+<body>
+<div class="progress" id="progress"></div>
+
+<nav>
+  <div class="inner">
+    <strong>JWT 入門</strong>
+    <a href="#what">JWT 是什麼</a>
+    <a href="#why">為什麼使用</a>
+    <a href="#structure">Token 結構</a>
+    <a href="#flow">驗證流程</a>
+    <a href="#claims">Claims</a>
+    <a href="#security">安全觀念</a>
+    <a href="#demo">互動示範</a>
+    <a href="#summary">重點整理</a>
+  </div>
+</nav>
+
+<header>
+  <div class="hero">
+    <span class="eyebrow">ASP.NET Core Web API 前導觀念</span>
+    <h1>JWT<br>JSON Web Token</h1>
+    <p>理解 JWT 的用途、結構、Claims、簽章驗證，以及它與 Authentication、Authorization 的關係。</p>
+    <div class="quote">JWT 不是加密資料的保險箱，而是一份可驗證真偽的身分聲明。</div>
+  </div>
+</header>
+
+<main>
+  <section id="what">
+    <h2>01｜JWT 是什麼？</h2>
+    <p class="lead">JWT 是 <strong>JSON Web Token</strong> 的縮寫，是一種用來安全傳遞聲明資訊的 Token 格式。</p>
+
+    <div class="grid">
+      <div class="card">
+        <div class="icon">🪪</div>
+        <h3>攜帶身分資訊</h3>
+        <p>例如使用者 ID、名稱、角色與其他 Claims。</p>
+      </div>
+      <div class="card">
+        <div class="icon">✍️</div>
+        <h3>透過簽章驗證</h3>
+        <p>API 可以確認 Token 是否由可信任的簽發者產生，以及內容是否被竄改。</p>
+      </div>
+      <div class="card">
+        <div class="icon">🌐</div>
+        <h3>適合跨系統傳遞</h3>
+        <p>常用於 Web API、SPA、行動 App 與分散式系統。</p>
+      </div>
+    </div>
+
+    <div class="callout">
+      JWT 是一種 Token 格式；Authentication 與 Authorization 則是系統安全流程。
+    </div>
+  </section>
+
+  <section id="why">
+    <h2>02｜為什麼 Web API 常使用 JWT？</h2>
+    <div class="grid-2">
+      <div class="card">
+        <h3>Stateful Session</h3>
+        <p>伺服器保存登入 Session，Client 通常透過 Cookie 攜帶 Session ID。</p>
+        <p><strong>特性：</strong>伺服器需要維護登入狀態。</p>
+      </div>
+      <div class="card">
+        <h3>Stateless Token</h3>
+        <p>Client 每次呼叫 API 時攜帶 Token，API 根據 Token 完成驗證。</p>
+        <p><strong>特性：</strong>較容易支援多個 API 節點與不同類型 Client。</p>
+      </div>
+    </div>
+
+    <table>
+      <thead><tr><th>情境</th><th>JWT 的價值</th></tr></thead>
+      <tbody>
+        <tr><td>SPA 呼叫 Web API</td><td>前端可以在 Authorization Header 中攜帶 Access Token</td></tr>
+        <tr><td>行動 App</td><td>不依賴傳統瀏覽器 Session Cookie</td></tr>
+        <tr><td>多個 API 節點</td><td>各節點可使用相同規則驗證 Token</td></tr>
+        <tr><td>微服務</td><td>可在服務之間傳遞已驗證的身分聲明</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section id="structure">
+    <h2>03｜JWT 的三個部分</h2>
+    <p class="lead">一個 JWT 通常由三段 Base64Url 編碼內容組成，並使用句點分隔。</p>
+
+    <div class="token-line">
+      <span class="h">xxxxx</span>.<span class="p">yyyyy</span>.<span class="s">zzzzz</span>
+    </div>
+
+    <div class="token">
+      <div class="token-part header-part">
+        <h3>Header</h3>
+        <p>描述 Token 類型與簽章演算法。</p>
+        <code>{"alg":"HS256","typ":"JWT"}</code>
+      </div>
+      <div class="token-part payload-part">
+        <h3>Payload</h3>
+        <p>放置 Claims，例如 sub、name、role、exp。</p>
+        <code>{"sub":"1","role":"Admin"}</code>
+      </div>
+      <div class="token-part signature-part">
+        <h3>Signature</h3>
+        <p>用來驗證 Header 與 Payload 是否遭到竄改。</p>
+        <code>HMACSHA256(...)</code>
+      </div>
+    </div>
+
+    <div class="callout warning">
+      Header 與 Payload 只是編碼，不是加密。任何取得 Token 的人都可能讀取其中內容。
+    </div>
+  </section>
+
+  <section id="flow">
+    <h2>04｜JWT Authentication 流程</h2>
+
+    <div class="flow">
+      <div class="node">1. 使用者登入</div>
+      <div class="arrow">→</div>
+      <div class="node">2. 驗證帳號密碼</div>
+      <div class="arrow">→</div>
+      <div class="node">3. 簽發 JWT</div>
+      <div class="arrow">→</div>
+      <div class="node">4. Client 保存 Token</div>
+    </div>
+
+    <div class="flow">
+      <div class="node">5. 呼叫受保護 API</div>
+      <div class="arrow">→</div>
+      <div class="node">6. 攜帶 Bearer Token</div>
+      <div class="arrow">→</div>
+      <div class="node">7. API 驗證 Token</div>
+      <div class="arrow">→</div>
+      <div class="node">8. 執行授權</div>
+    </div>
+
+    <pre>Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...</pre>
+
+    <table>
+      <thead><tr><th>檢查項目</th><th>目的</th></tr></thead>
+      <tbody>
+        <tr><td>Signature</td><td>確認 Token 沒有遭到竄改</td></tr>
+        <tr><td>Issuer</td><td>確認由可信任的簽發者產生</td></tr>
+        <tr><td>Audience</td><td>確認 Token 是簽發給目前 API</td></tr>
+        <tr><td>Expiration</td><td>確認 Token 尚未過期</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section id="claims">
+    <h2>05｜Claims 是什麼？</h2>
+    <p class="lead">Claim 是對使用者或 Token 的一項聲明。</p>
+
+    <pre>{
+  "sub": "1001",
+  "name": "Andy",
+  "role": "Admin",
+  "department": "IT",
+  "exp": 1785187200,
+  "iss": "JwtCourseApi",
+  "aud": "JwtCourseClient"
+}</pre>
+
+    <table>
+      <thead><tr><th>Claim</th><th>常見用途</th></tr></thead>
+      <tbody>
+        <tr><td><code>sub</code></td><td>Subject，識別使用者或主體</td></tr>
+        <tr><td><code>name</code></td><td>顯示名稱</td></tr>
+        <tr><td><code>role</code></td><td>角色授權，例如 Admin、Teacher</td></tr>
+        <tr><td><code>exp</code></td><td>Token 到期時間</td></tr>
+        <tr><td><code>iss</code></td><td>Token 簽發者</td></tr>
+        <tr><td><code>aud</code></td><td>Token 的目標接收者</td></tr>
+      </tbody>
+    </table>
+
+    <div class="callout">
+      JWT 可以攜帶 Role Claim，但真正的權限判斷仍由 API 的 Authorization 規則負責。
+    </div>
+  </section>
+
+  <section>
+    <h2>06｜Authentication 與 Authorization</h2>
+    <div class="grid">
+      <div class="card">
+        <div class="icon">🪪</div>
+        <h3>Authentication</h3>
+        <p>確認使用者是誰，以及 Token 是否有效。</p>
+      </div>
+      <div class="card">
+        <div class="icon">🛡️</div>
+        <h3>Authorization</h3>
+        <p>確認目前使用者是否有權限執行某個操作。</p>
+      </div>
+      <div class="card">
+        <div class="icon">🎭</div>
+        <h3>RBAC</h3>
+        <p>根據 JWT 中的角色 Claim 進行角色授權。</p>
+      </div>
+    </div>
+
+    <pre>[Authorize(Roles = "Admin")]
+[HttpDelete("users/{id}")]
+public IActionResult DeleteUser(int id)
+{
+    return NoContent();
+}</pre>
+  </section>
+
+  <section id="security">
+    <h2>07｜JWT 安全觀念</h2>
+    <div class="grid">
+      <div class="card">
+        <h3>不要放敏感資訊</h3>
+        <p>Payload 可被解碼，不應放密碼、信用卡資訊或其他機密資料。</p>
+      </div>
+      <div class="card">
+        <h3>Access Token 要短效</h3>
+        <p>降低 Token 外洩後可被濫用的時間。</p>
+      </div>
+      <div class="card">
+        <h3>一定要使用 HTTPS</h3>
+        <p>避免 Token 在傳輸過程中被攔截。</p>
+      </div>
+      <div class="card">
+        <h3>驗證 Issuer 與 Audience</h3>
+        <p>避免接受不屬於目前系統的 Token。</p>
+      </div>
+      <div class="card">
+        <h3>妥善保護簽章金鑰</h3>
+        <p>不要將正式金鑰直接提交到 Git Repository。</p>
+      </div>
+      <div class="card">
+        <h3>前端隱藏不是授權</h3>
+        <p>所有敏感操作都必須由後端 API 驗證與授權。</p>
+      </div>
+    </div>
+
+    <div class="callout warning">
+      JWT 一旦簽發，通常無法像 Session 一樣立即從伺服器刪除。正式系統需要考慮短效 Access Token、Refresh Token、撤銷與金鑰輪替。
+    </div>
+  </section>
+
+  <section id="demo">
+    <h2>08｜互動示範：API 如何判斷 Token？</h2>
+    <p class="lead">點選不同情境，觀察 API 的回應。</p>
+
+    <div class="demo">
+      <div>
+        <button class="active" data-case="valid">✅ 有效的 Admin Token</button>
+        <button data-case="expired">⏰ 已過期的 Token</button>
+        <button data-case="invalid">✍️ 簽章遭到竄改</button>
+        <button data-case="forbidden">🚫 有效但角色不符</button>
+        <button data-case="missing">❓ 沒有攜帶 Token</button>
+      </div>
+      <div class="result" id="result"></div>
+    </div>
+  </section>
+
+  <section class="quiz">
+    <h2>09｜快速檢查</h2>
+    <p><strong>問題：</strong>JWT Payload 使用 Base64Url 編碼，所以其中內容只有伺服器看得到嗎？</p>
+    <button onclick="answer(false)">是</button>
+    <button onclick="answer(true)">不是</button>
+    <div class="answer" id="answer"></div>
+  </section>
+
+  <section id="summary">
+    <h2>10｜重點整理</h2>
+    <div class="grid">
+      <div class="card">
+        <h3>JWT 是格式</h3>
+        <p>它用來攜帶聲明資訊，不等於完整的登入系統。</p>
+      </div>
+      <div class="card">
+        <h3>Signature 保證完整性</h3>
+        <p>簽章可以驗證 Token 是否遭到竄改，但不代表 Payload 被加密。</p>
+      </div>
+      <div class="card">
+        <h3>Authorization 仍在 API</h3>
+        <p>Token 提供 Claims，API 根據角色或 Policy 決定是否允許存取。</p>
+      </div>
+    </div>
+
+    <div class="quote" style="margin-top:28px;font-size:24px;font-weight:800;text-align:center">
+      JWT 負責攜帶與證明身分資訊；API 負責驗證與授權。
+    </div>
+  </section>
+</main>
+
+<footer>JWT JSON Web Token｜ASP.NET Core Web API 課堂前導講義</footer>
+
+<script>
+  const cases = {
+    valid: {
+      title: "200 OK",
+      cls: "success",
+      body: `
+        <h3>有效的 Admin Token</h3>
+        <p>簽章、Issuer、Audience 與到期時間都正確，而且角色符合 API 要求。</p>
+        <p class="success">結果：允許存取受保護資源。</p>`
+    },
+    expired: {
+      title: "401 Unauthorized",
+      cls: "danger",
+      body: `
+        <h3>Token 已過期</h3>
+        <p>使用者可能曾經登入成功，但這張 Access Token 已經超過有效期限。</p>
+        <p class="danger">結果：Authentication 失敗。</p>`
+    },
+    invalid: {
+      title: "401 Unauthorized",
+      cls: "danger",
+      body: `
+        <h3>Token 簽章無效</h3>
+        <p>Payload 可能被修改，或 Token 並非由可信任的簽發者產生。</p>
+        <p class="danger">結果：Authentication 失敗。</p>`
+    },
+    forbidden: {
+      title: "403 Forbidden",
+      cls: "danger",
+      body: `
+        <h3>Token 有效，但角色不符</h3>
+        <p>使用者已通過 Authentication，但沒有執行該操作所需的角色或權限。</p>
+        <p class="danger">結果：Authorization 失敗。</p>`
+    },
+    missing: {
+      title: "401 Unauthorized",
+      cls: "danger",
+      body: `
+        <h3>沒有攜帶 Token</h3>
+        <p>受保護 API 無法確認呼叫者身分。</p>
+        <p class="danger">結果：Authentication 失敗。</p>`
+    }
+  };
+
+  function renderCase(name){
+    const data = cases[name];
+    document.getElementById("result").innerHTML =
+      `<div class="${data.cls}" style="font-size:30px">${data.title}</div>${data.body}`;
+  }
+
+  document.querySelectorAll(".demo button").forEach(btn => {
+    btn.addEventListener("click", () => {
+      document.querySelectorAll(".demo button").forEach(x => x.classList.remove("active"));
+      btn.classList.add("active");
+      renderCase(btn.dataset.case);
+    });
+  });
+
+  function answer(correct){
+    const el = document.getElementById("answer");
+    if(correct){
+      el.innerHTML = '<span class="success">答對了。</span>Payload 只是編碼，不是加密，取得 Token 的人通常都可以解碼並讀取內容。';
+    }else{
+      el.innerHTML = '<span class="danger">再想一下。</span>Base64Url 的目的不是保密，敏感資訊不應放入 JWT Payload。';
+    }
+  }
+
+  window.addEventListener("scroll", () => {
+    const max = document.documentElement.scrollHeight - window.innerHeight;
+    const width = max > 0 ? (window.scrollY / max) * 100 : 0;
+    document.getElementById("progress").style.width = width + "%";
+  });
+
+  renderCase("valid");
+</script>
+</body>
+</html>

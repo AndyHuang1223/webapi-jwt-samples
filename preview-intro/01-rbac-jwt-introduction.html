@@ -1,0 +1,438 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>RBAC 角色式存取控制｜JWT 前導介紹</title>
+  <style>
+    :root{
+      --bg:#f5f7fb;
+      --card:#ffffff;
+      --ink:#1f2937;
+      --muted:#667085;
+      --primary:#4f46e5;
+      --primary-soft:#eef2ff;
+      --success:#15803d;
+      --danger:#b42318;
+      --line:#e4e7ec;
+      --shadow:0 18px 45px rgba(16,24,40,.10);
+    }
+    *{box-sizing:border-box}
+    html{scroll-behavior:smooth}
+    body{
+      margin:0;
+      font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang TC",
+      "Noto Sans TC","Microsoft JhengHei",sans-serif;
+      background:var(--bg);
+      color:var(--ink);
+      line-height:1.75;
+    }
+    .progress{
+      position:fixed;left:0;top:0;height:5px;width:0;
+      background:linear-gradient(90deg,#4f46e5,#8b5cf6);
+      z-index:999;
+    }
+    nav{
+      position:sticky;top:0;z-index:100;
+      backdrop-filter:blur(16px);
+      background:rgba(255,255,255,.86);
+      border-bottom:1px solid rgba(228,231,236,.9);
+    }
+    nav .inner{
+      max-width:1180px;margin:auto;padding:12px 24px;
+      display:flex;align-items:center;gap:18px;overflow:auto;
+    }
+    nav strong{white-space:nowrap;color:var(--primary)}
+    nav a{color:#475467;text-decoration:none;white-space:nowrap;font-size:14px}
+    nav a:hover{color:var(--primary)}
+    header{
+      min-height:72vh;
+      display:grid;place-items:center;
+      padding:72px 24px;
+      background:
+        radial-gradient(circle at 10% 10%,rgba(99,102,241,.14),transparent 28%),
+        radial-gradient(circle at 90% 30%,rgba(139,92,246,.14),transparent 26%),
+        linear-gradient(180deg,#fff,#f8f9ff);
+    }
+    .hero{max-width:1050px;text-align:center}
+    .eyebrow{
+      display:inline-block;padding:7px 14px;border-radius:999px;
+      color:var(--primary);background:var(--primary-soft);
+      font-weight:700;font-size:14px;letter-spacing:.04em;
+    }
+    h1{font-size:clamp(42px,7vw,82px);line-height:1.05;margin:22px 0 18px}
+    .hero p{font-size:clamp(18px,2vw,25px);color:var(--muted);margin:0 auto;max-width:820px}
+    .hero .quote{
+      margin:36px auto 0;padding:20px 26px;max-width:820px;
+      background:#fff;border-left:6px solid var(--primary);
+      border-radius:12px;box-shadow:var(--shadow);
+      font-size:clamp(18px,2vw,24px);font-weight:750;text-align:left;
+    }
+    main{max-width:1120px;margin:auto;padding:36px 24px 100px}
+    section{
+      margin:34px 0;padding:38px;
+      background:var(--card);border:1px solid var(--line);
+      border-radius:22px;box-shadow:0 7px 22px rgba(16,24,40,.05);
+    }
+    h2{font-size:clamp(28px,4vw,44px);line-height:1.2;margin:0 0 22px}
+    h3{font-size:23px;margin:26px 0 10px}
+    .lead{font-size:20px;color:#475467}
+    .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:18px}
+    .card{
+      border:1px solid var(--line);border-radius:18px;padding:22px;background:#fff;
+    }
+    .card .icon{font-size:34px}
+    .card h3{margin:10px 0 6px}
+    .flow{
+      display:flex;align-items:center;justify-content:center;gap:15px;
+      flex-wrap:wrap;margin:30px 0;
+    }
+    .node{
+      min-width:180px;padding:20px;border-radius:16px;text-align:center;
+      background:var(--primary-soft);border:1px solid #c7d2fe;font-weight:750;
+    }
+    .arrow{font-size:30px;color:var(--primary);font-weight:800}
+    .compare{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+    .compare .panel{padding:24px;border-radius:18px;border:1px solid var(--line)}
+    .compare .panel:first-child{background:#fff7ed}
+    .compare .panel:last-child{background:#ecfdf3}
+    table{width:100%;border-collapse:collapse;margin:18px 0;overflow:hidden;border-radius:14px}
+    th,td{padding:14px 16px;border:1px solid var(--line);text-align:left}
+    th{background:#f9fafb}
+    code{
+      font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+      background:#f2f4f7;padding:2px 7px;border-radius:7px;
+    }
+    pre{
+      overflow:auto;padding:22px;border-radius:16px;
+      background:#101828;color:#f8fafc;font-size:15px;line-height:1.65;
+    }
+    .callout{
+      border-left:6px solid var(--primary);
+      background:var(--primary-soft);padding:18px 22px;border-radius:12px;
+      font-size:19px;font-weight:700;
+    }
+    .success{color:var(--success);font-weight:700}
+    .danger{color:var(--danger);font-weight:700}
+    .demo{
+      display:grid;grid-template-columns:280px 1fr;gap:24px;align-items:start;
+    }
+    .roles button{
+      width:100%;padding:15px;margin-bottom:10px;border-radius:12px;
+      border:1px solid var(--line);background:#fff;text-align:left;
+      font-size:16px;cursor:pointer;
+    }
+    .roles button.active{background:var(--primary);color:#fff;border-color:var(--primary)}
+    .permissions{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
+    .perm{
+      padding:16px;border-radius:12px;border:1px solid var(--line);
+      display:flex;justify-content:space-between;gap:12px;background:#fff;
+    }
+    .status{font-weight:800}
+    .quiz button{
+      padding:12px 18px;border:0;border-radius:10px;background:var(--primary);
+      color:white;font-weight:700;cursor:pointer;margin:5px 8px 5px 0;
+    }
+    .answer{margin-top:15px;font-weight:700;min-height:30px}
+    footer{text-align:center;color:var(--muted);padding:50px 20px}
+    @media(max-width:800px){
+      .grid,.compare,.demo{grid-template-columns:1fr}
+      section{padding:25px}
+      .permissions{grid-template-columns:1fr}
+      h1{font-size:48px}
+    }
+    @media print{
+      nav,.progress,.quiz{display:none}
+      body{background:#fff}
+      section{box-shadow:none;break-inside:avoid}
+    }
+  </style>
+</head>
+<body>
+<div class="progress" id="progress"></div>
+
+<nav>
+  <div class="inner">
+    <strong>RBAC 課堂講義</strong>
+    <a href="#what">什麼是 RBAC</a>
+    <a href="#why">為什麼需要</a>
+    <a href="#auth">驗證與授權</a>
+    <a href="#jwt">JWT 關係</a>
+    <a href="#aspnet">ASP.NET Core</a>
+    <a href="#demo">互動示範</a>
+    <a href="#summary">重點整理</a>
+  </div>
+</nav>
+
+<header>
+  <div class="hero">
+    <span class="eyebrow">JWT 實作前的必要觀念</span>
+    <h1>RBAC<br>角色式存取控制</h1>
+    <p>先理解「角色」與「權限」的關係，再開始學習 JWT Authentication 與 Authorization。</p>
+    <div class="quote">權限配置給角色，再將角色指派給使用者。</div>
+  </div>
+</header>
+
+<main>
+  <section id="what">
+    <h2>01｜什麼是 RBAC？</h2>
+    <p class="lead">RBAC 是 <strong>Role-Based Access Control</strong> 的縮寫，中文通常稱為「角色式存取控制」。</p>
+
+    <div class="flow">
+      <div class="node">👤 使用者<br>User</div>
+      <div class="arrow">→</div>
+      <div class="node">🎭 角色<br>Role</div>
+      <div class="arrow">→</div>
+      <div class="node">🔐 權限<br>Permission</div>
+    </div>
+
+    <div class="callout">
+      RBAC 不直接問「Andy 可以做什麼」，而是先問「Andy 是什麼角色」，再由角色決定能做什麼。
+    </div>
+  </section>
+
+  <section id="why">
+    <h2>02｜為什麼需要 RBAC？</h2>
+    <div class="compare">
+      <div class="panel">
+        <h3>❌ 直接替每個人設定權限</h3>
+        <p>每一位使用者都要逐項設定新增、修改、刪除、匯出等權限。</p>
+        <p class="danger">問題：設定重複、容易出錯、人員異動難維護。</p>
+      </div>
+      <div class="panel">
+        <h3>✅ 使用角色集中管理</h3>
+        <p>先建立 Admin、Teacher、Student 等角色，再把角色指派給使用者。</p>
+        <p class="success">優點：一致、清楚、容易維護與稽核。</p>
+      </div>
+    </div>
+
+    <h3>範例</h3>
+    <table>
+      <thead><tr><th>使用者</th><th>角色</th><th>主要權限</th></tr></thead>
+      <tbody>
+        <tr><td>Andy</td><td>Admin</td><td>新增、修改、刪除、查詢、匯出</td></tr>
+        <tr><td>Mary</td><td>Teacher</td><td>查詢學生、修改成績、匯出成績</td></tr>
+        <tr><td>John</td><td>Student</td><td>查詢自己的資料</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section id="auth">
+    <h2>03｜Authentication 與 Authorization</h2>
+    <div class="grid">
+      <div class="card">
+        <div class="icon">🪪</div>
+        <h3>Authentication</h3>
+        <p><strong>身分驗證：</strong>確認「你是誰」。</p>
+        <p>例如：帳號密碼是否正確？Token 是否有效？</p>
+      </div>
+      <div class="card">
+        <div class="icon">🛡️</div>
+        <h3>Authorization</h3>
+        <p><strong>授權：</strong>確認「你能做什麼」。</p>
+        <p>例如：你是否可以刪除使用者？</p>
+      </div>
+      <div class="card">
+        <div class="icon">🎭</div>
+        <h3>RBAC</h3>
+        <p>RBAC 是 Authorization 的一種實作方式。</p>
+        <p>它根據使用者擁有的角色判斷存取權限。</p>
+      </div>
+    </div>
+  </section>
+
+  <section id="jwt">
+    <h2>04｜JWT 與 RBAC 的關係</h2>
+    <p class="lead">JWT 不是權限管理系統。JWT 的主要工作，是攜帶使用者的身分資訊與 Claims。</p>
+
+    <pre>{
+  "sub": "1",
+  "name": "Andy",
+  "role": "Admin"
+}</pre>
+
+    <div class="flow">
+      <div class="node">使用者登入</div>
+      <div class="arrow">→</div>
+      <div class="node">建立 JWT</div>
+      <div class="arrow">→</div>
+      <div class="node">JWT 包含 Role Claim</div>
+      <div class="arrow">→</div>
+      <div class="node">API 執行角色授權</div>
+    </div>
+
+    <table>
+      <thead><tr><th>元件</th><th>主要責任</th></tr></thead>
+      <tbody>
+        <tr><td>JWT</td><td>攜帶使用者身分與 Claims</td></tr>
+        <tr><td>RBAC</td><td>根據角色決定可執行的功能</td></tr>
+        <tr><td>ASP.NET Core Authorization</td><td>實際執行授權判斷</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section id="aspnet">
+    <h2>05｜ASP.NET Core 中的角色授權</h2>
+
+    <h3>只要求使用者已登入</h3>
+    <pre>[Authorize]
+[HttpGet("profile")]
+public IActionResult GetProfile()
+{
+    return Ok();
+}</pre>
+
+    <h3>只允許 Admin</h3>
+    <pre>[Authorize(Roles = "Admin")]
+[HttpDelete("users/{id}")]
+public IActionResult DeleteUser(int id)
+{
+    return NoContent();
+}</pre>
+
+    <h3>允許 Admin 或 Teacher</h3>
+    <pre>[Authorize(Roles = "Admin,Teacher")]
+[HttpGet("reports")]
+public IActionResult GetReports()
+{
+    return Ok();
+}</pre>
+
+    <div class="callout">
+      前端隱藏按鈕只是介面控制，真正的安全授權一定要在後端 API 執行。
+    </div>
+  </section>
+
+  <section id="demo">
+    <h2>06｜互動示範：不同角色能做什麼？</h2>
+    <p class="lead">點選角色，觀察可使用的功能如何改變。</p>
+
+    <div class="demo">
+      <div class="roles">
+        <button class="active" data-role="Admin">👑 Admin</button>
+        <button data-role="Teacher">🧑‍🏫 Teacher</button>
+        <button data-role="Student">🎓 Student</button>
+      </div>
+
+      <div class="permissions" id="permissions"></div>
+    </div>
+  </section>
+
+  <section>
+    <h2>07｜RBAC 的限制</h2>
+    <p class="lead">角色適合處理「某一類人可以做什麼」，但不一定能處理資源關係與動態條件。</p>
+
+    <div class="grid">
+      <div class="card">
+        <h3>Resource-Based</h3>
+        <p>使用者只能修改自己建立的文章。</p>
+      </div>
+      <div class="card">
+        <h3>Claims / Policy</h3>
+        <p>只有 IT 部門且職級為 Senior 的人可以操作。</p>
+      </div>
+      <div class="card">
+        <h3>ABAC</h3>
+        <p>依據部門、地區、時間、裝置等屬性共同判斷。</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="quiz">
+    <h2>08｜快速檢查</h2>
+    <p><strong>問題：</strong>JWT 中包含 <code>role: Admin</code>，就代表所有 API 都會自動禁止非 Admin 存取嗎？</p>
+    <button onclick="answer(false)">是</button>
+    <button onclick="answer(true)">不是</button>
+    <div class="answer" id="answer"></div>
+  </section>
+
+  <section id="summary">
+    <h2>09｜重點整理</h2>
+    <div class="grid">
+      <div class="card">
+        <h3>JWT</h3>
+        <p>負責攜帶身分資訊與 Role Claim。</p>
+      </div>
+      <div class="card">
+        <h3>RBAC</h3>
+        <p>負責定義角色與權限的對應關係。</p>
+      </div>
+      <div class="card">
+        <h3>Authorize</h3>
+        <p>負責在 API 上執行實際的授權判斷。</p>
+      </div>
+    </div>
+
+    <div class="quote" style="margin-top:28px;font-size:24px;font-weight:800;text-align:center">
+      Authentication 解決「你是誰」；RBAC 解決「你的角色能做什麼」。
+    </div>
+  </section>
+</main>
+
+<footer>RBAC 角色式存取控制｜JWT 課程前導講義</footer>
+
+<script>
+  const roleData = {
+    Admin: {
+      "查詢商品": true,
+      "新增商品": true,
+      "修改商品": true,
+      "刪除商品": true,
+      "管理使用者": true,
+      "匯出報表": true
+    },
+    Teacher: {
+      "查詢商品": true,
+      "新增商品": true,
+      "修改商品": true,
+      "刪除商品": false,
+      "管理使用者": false,
+      "匯出報表": true
+    },
+    Student: {
+      "查詢商品": true,
+      "新增商品": false,
+      "修改商品": false,
+      "刪除商品": false,
+      "管理使用者": false,
+      "匯出報表": false
+    }
+  };
+
+  function renderRole(role){
+    const box = document.getElementById("permissions");
+    box.innerHTML = Object.entries(roleData[role]).map(([name, ok]) => `
+      <div class="perm">
+        <span>${name}</span>
+        <span class="status ${ok ? "success" : "danger"}">${ok ? "允許" : "拒絕"}</span>
+      </div>
+    `).join("");
+  }
+
+  document.querySelectorAll(".roles button").forEach(btn => {
+    btn.addEventListener("click", () => {
+      document.querySelectorAll(".roles button").forEach(x => x.classList.remove("active"));
+      btn.classList.add("active");
+      renderRole(btn.dataset.role);
+    });
+  });
+
+  function answer(correct){
+    const el = document.getElementById("answer");
+    if(correct){
+      el.innerHTML = '<span class="success">答對了。</span>JWT 只攜帶角色資訊，API 仍必須設定 <code>[Authorize]</code> 或其他授權規則。';
+    }else{
+      el.innerHTML = '<span class="danger">再想一下。</span>只有 JWT 中有角色還不夠，後端仍需執行授權判斷。';
+    }
+  }
+
+  window.addEventListener("scroll", () => {
+    const max = document.documentElement.scrollHeight - window.innerHeight;
+    const width = max > 0 ? (window.scrollY / max) * 100 : 0;
+    document.getElementById("progress").style.width = width + "%";
+  });
+
+  renderRole("Admin");
+</script>
+</body>
+</html>

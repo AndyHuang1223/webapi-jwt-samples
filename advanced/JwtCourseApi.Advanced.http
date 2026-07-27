@@ -1,0 +1,68 @@
+@host = https://localhost:7223
+@accessToken = paste-access-token-here
+@bodyRefreshToken = paste-body-refresh-token-here
+@oldBodyRefreshToken = paste-the-previous-refresh-token-here
+@csrfToken = paste-cookie-login-csrf-token-here
+
+### 公開 API
+GET {{host}}/api/demo/public
+Accept: application/json
+
+### Body Login：複製 accessToken 與 refreshToken 到上方變數
+POST {{host}}/api/auth/body/login
+Content-Type: application/json
+
+{
+  "username": "student",
+  "password": "Student123!"
+}
+
+### 使用 Access Token
+GET {{host}}/api/demo/profile
+Authorization: Bearer {{accessToken}}
+Accept: application/json
+
+### Body Refresh：成功後舊 Refresh Token 立即失效
+POST {{host}}/api/auth/body/refresh
+Content-Type: application/json
+
+{
+  "refreshToken": "{{bodyRefreshToken}}"
+}
+
+### 重放舊 Token：應為 401，並撤銷同 family 的新 Token
+POST {{host}}/api/auth/body/refresh
+Content-Type: application/json
+
+{
+  "refreshToken": "{{oldBodyRefreshToken}}"
+}
+
+### Body Logout
+POST {{host}}/api/auth/body/logout
+Content-Type: application/json
+
+{
+  "refreshToken": "{{bodyRefreshToken}}"
+}
+
+### Cookie Login：HTTP client 應保存 response cookies；複製 csrfToken
+POST {{host}}/api/auth/cookie/login
+Content-Type: application/json
+
+{
+  "username": "admin",
+  "password": "Admin123!"
+}
+
+### 重新取得 antiforgery request token
+GET {{host}}/api/auth/cookie/csrf
+Accept: application/json
+
+### Cookie Refresh：Refresh Token 不放在 body
+POST {{host}}/api/auth/cookie/refresh
+X-CSRF-TOKEN: {{csrfToken}}
+
+### Cookie Logout
+POST {{host}}/api/auth/cookie/logout
+X-CSRF-TOKEN: {{csrfToken}}

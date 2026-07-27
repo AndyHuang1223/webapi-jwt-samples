@@ -1,0 +1,31 @@
+@JwtCourseApiBasic_HostAddress = https://localhost:7123
+@token = paste-login-access-token-here
+
+### 公開 API
+GET {{JwtCourseApiBasic_HostAddress}}/api/demo/public
+Accept: application/json
+
+###
+# 登入：複製 response 中的 accessToken，貼到上方 @token
+POST {{JwtCourseApiBasic_HostAddress}}/api/auth/login
+Content-Type: application/json
+
+{
+  "username": "student",
+  "password": "Student123!"
+}
+
+### 需要登入
+GET {{JwtCourseApiBasic_HostAddress}}/api/demo/profile
+Authorization: Bearer {{token}}
+Accept: application/json
+
+### Student 會得到 403；改用 admin token 可得到 200
+GET {{JwtCourseApiBasic_HostAddress}}/api/demo/admin
+Authorization: Bearer {{token}}
+Accept: application/json
+
+### student 會得到 200；admin 會得到 403
+GET {{JwtCourseApiBasic_HostAddress}}/api/demo/it-department
+Authorization: Bearer {{token}}
+Accept: application/json
