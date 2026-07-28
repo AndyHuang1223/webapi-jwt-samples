@@ -1,6 +1,8 @@
 using JwtCourseApi.Advanced.Data;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
+using Microsoft.Data.Sqlite;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
@@ -49,11 +51,43 @@ public sealed class AdvancedApiFactory : WebApplicationFactory<Program>
 
     protected override void Dispose(bool disposing)
     {
+        if (disposing)
+        {
+            // 在 base.Dispose 之前先關閉資料庫連接
+            try
+            {
+                using (var scope = Services.CreateScope())
+                {
+                    var dbContext = scope.ServiceProvider.GetRequiredService<AuthDbContext>();
+                    dbContext.Database.CloseConnection();
+                }
+            }
+            catch
+            {
+                // 忽略錯誤，繼續清理
+            }
+
+            // 清除 SQLite 連接池，這在 Windows 上很重要
+            SqliteConnection.ClearAllPools();
+        }
+
         base.Dispose(disposing);
 
-        if (File.Exists(_databasePath))
+        if (disposing && File.Exists(_databasePath))
         {
-            File.Delete(_databasePath);
+            // 在 Windows 上，檔案可能仍被鎖定，所以重試幾次
+            for (int i = 0; i < 3; i++)
+            {
+                try
+                {
+                    File.Delete(_databasePath);
+                    break;
+                }
+                catch (IOException) when (i < 2)
+                {
+                    Thread.Sleep(100);
+                }
+            }
         }
     }
 }
